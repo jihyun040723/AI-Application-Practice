@@ -1,0 +1,6 @@
+@echo off
+cd /d "%~dp0"
+echo Starting Handwritten Digit Recognition Program...
+echo Please wait while the model trains (this may take a minute)...
+python digit_recognition.py
+pause

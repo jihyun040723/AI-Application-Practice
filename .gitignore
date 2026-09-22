@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# PyInstaller build artifacts (large, regenerable via build_exe.bat)
+build/
+dist/
+*.spec
+
+# Trained model cache (large, regenerable by running the app once)
+digit_model.keras
+
+# OS
+Thumbs.db
+.DS_Store
