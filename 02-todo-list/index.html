@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Tasks</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-card">
+        <header class="app-header">
+            <h1>My Tasks</h1>
+            <label class="theme-toggle" title="다크/라이트 모드 전환 (Alt+D)">
+                <input type="checkbox" id="themeToggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </header>
+
+        <section class="dashboard">
+            <div class="dashboard-top">
+                <div class="overall-progress">
+                    <span class="dashboard-label">전체 진행률</span>
+                    <div class="progress-value" id="overallProgressText">0/0 완료 (0%)</div>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="overallProgressFill"></div>
+                    </div>
+                </div>
+                <div class="today-count">
+                    <span class="dashboard-label">오늘 추가</span>
+                    <div class="today-count-value" id="todayCount">0개</div>
+                </div>
+            </div>
+
+            <div class="category-stats" id="categoryStats"></div>
+
+            <div class="daily-quote" id="dailyQuote"></div>
+        </section>
+
+        <div class="toolbar">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="할 일 검색...">
+            </div>
+            <div class="sort-box">
+                <label for="sortSelect">정렬:</label>
+                <select id="sortSelect">
+                    <option value="date-desc">최신순</option>
+                    <option value="date-asc">오래된순</option>
+                    <option value="category">카테고리순</option>
+                    <option value="completed">완료 상태순</option>
+                    <option value="dueDate">마감일순</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="io-buttons">
+            <button id="exportBtn" type="button">⬆ 내보내기</button>
+            <button id="importBtn" type="button">⬆ 가져오기</button>
+            <input type="file" id="importFile" accept=".json" hidden>
+        </div>
+
+        <div class="filter-row" id="filterRow">
+            <button class="filter-btn active" data-filter="all">전체 <span class="filter-count" id="countAll">0</span></button>
+            <button class="filter-btn" data-filter="work">업무 <span class="filter-count" id="countWork">0</span></button>
+            <button class="filter-btn" data-filter="personal">개인 <span class="filter-count" id="countPersonal">0</span></button>
+            <button class="filter-btn" data-filter="study">공부 <span class="filter-count" id="countStudy">0</span></button>
+            <button class="clear-completed-btn" id="clearCompletedBtn" type="button">🗑 완료된 항목 삭제</button>
+        </div>
+
+        <div class="add-row">
+            <select id="categorySelect">
+                <option value="work">업무</option>
+                <option value="personal">개인</option>
+                <option value="study">공부</option>
+            </select>
+            <input type="text" id="taskInput" placeholder="새로운 할 일을 입력하세요... (Alt+N)" maxlength="100">
+            <button id="addBtn" type="button">추가</button>
+        </div>
+        <div class="add-row-extra">
+            <label>마감일 <input type="date" id="dueDateInput"></label>
+            <label>반복
+                <select id="repeatSelect">
+                    <option value="none">없음</option>
+                    <option value="daily">매일</option>
+                    <option value="weekly">매주</option>
+                </select>
+            </label>
+        </div>
+
+        <ul class="task-list" id="taskList"></ul>
+
+        <div class="empty-state" id="emptyState" hidden>할 일이 없습니다. 추가해보세요!</div>
+    </div>
+
+<script src="script.js"></script>
+</body>
+</html>
