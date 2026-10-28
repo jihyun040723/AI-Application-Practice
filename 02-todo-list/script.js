@@ -19,6 +19,63 @@ const QUOTES = [
     "천천히 가도 멈추지만 않으면 됩니다",
 ];
 
+// Keyword dictionary for automatic category suggestions.
+// Single-character keywords are weighted lower and only match at the start
+// of a word, because they are far more likely to appear by accident.
+const CATEGORY_KEYWORDS = {
+    work: [
+        "회의", "미팅", "프로젝트", "보고서", "클라이언트", "개발", "코딩", "시스템",
+        "업무", "출장", "기획", "발표", "메일", "계약", "견적", "거래처", "결재",
+        "야근", "회사", "스케줄", "팀", "납품", "배포", "고객",
+    ],
+    personal: [
+        "집", "가족", "친구", "취미", "여행", "쇼핑", "운동", "요리", "병원",
+        "영화", "청소", "빨래", "장보기", "약속", "생일", "산책", "데이트",
+        "카페", "휴가", "미용실", "헬스", "주말",
+    ],
+    study: [
+        "공부", "학습", "강의", "시험", "과제", "책", "프로그래밍", "자격증",
+        "수업", "복습", "예습", "논문", "암기", "독서", "단어", "문제집", "퀴즈",
+    ],
+};
+
+const DEFAULT_AUTO_CATEGORY = {
+    enabled: true,
+    showSuggestions: true,
+    threshold: 0.6,
+};
+
+// Returns { category, confidence, matches } or null when nothing matches.
+// confidence = winning category's share of the total keyword score (0-1).
+function classifyText(text) {
+    const lower = text.toLowerCase();
+    const scores = {};
+    const matches = {};
+    let total = 0;
+
+    for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+        scores[cat] = 0;
+        matches[cat] = [];
+        for (const kw of keywords) {
+            let hit;
+            if (kw.length === 1) {
+                hit = new RegExp(`(^|\\s)${kw}`).test(lower);
+            } else {
+                hit = lower.includes(kw);
+            }
+            if (!hit) continue;
+            const weight = kw.length === 1 ? 0.5 : 1;
+            scores[cat] += weight;
+            matches[cat].push(kw);
+            total += weight;
+        }
+    }
+    if (total === 0) return null;
+
+    const [category, best] = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
+    return { category, confidence: best / total, matches: matches[category] };
+}
+
 class TaskManager {
     constructor() {
         this.tasks = [];
@@ -26,6 +83,7 @@ class TaskManager {
             currentFilter: "all",
             currentSort: "date-desc",
             isDarkMode: false,
+            autoCategory: { ...DEFAULT_AUTO_CATEGORY },
         };
         this.searchTerm = "";
         this.editingId = null;
@@ -44,7 +102,12 @@ class TaskManager {
         try {
             const data = JSON.parse(raw);
             this.tasks = data.tasks || [];
-            this.settings = { ...this.settings, ...(data.settings || {}) };
+            const saved = data.settings || {};
+            this.settings = {
+                ...this.settings,
+                ...saved,
+                autoCategory: { ...DEFAULT_AUTO_CATEGORY, ...(saved.autoCategory || {}) },
+            };
         } catch (err) {
             console.error("Failed to load saved tasks", err);
         }
@@ -515,6 +578,9 @@ class TaskManager {
             e.target.value = "";
         });
 
+        document.getElementById("reclassifyBtn").addEventListener("click", () => this.reclassifyAll());
+        document.getElementById("categorySettingsBtn").addEventListener("click", () => this.openSettings());
+
         document.getElementById("themeToggle").addEventListener("change", () => this.toggleTheme());
 
         document.addEventListener("keydown", (e) => {
@@ -538,16 +604,209 @@ class TaskManager {
 
     handleAdd() {
         const input = document.getElementById("taskInput");
-        const category = document.getElementById("categorySelect").value;
+        const categorySelect = document.getElementById("categorySelect");
         const dueDateInput = document.getElementById("dueDateInput");
         const repeatSelect = document.getElementById("repeatSelect");
 
-        this.addTask(input.value, category, dueDateInput.value, repeatSelect.value);
+        const text = input.value;
+        const selected = categorySelect.value;
+        const dueDate = dueDateInput.value;
+        const repeat = repeatSelect.value;
+        if (!text.trim()) return;
 
-        input.value = "";
-        dueDateInput.value = "";
-        repeatSelect.value = "none";
-        input.focus();
+        const reset = () => {
+            input.value = "";
+            dueDateInput.value = "";
+            repeatSelect.value = "none";
+            input.focus();
+        };
+
+        const suggestion = this.getSuggestion(text, selected);
+        if (!suggestion) {
+            this.addTask(text, selected, dueDate, repeat);
+            reset();
+            return;
+        }
+
+        const { category, confidence } = suggestion;
+        if (!this.settings.autoCategory.showSuggestions) {
+            // Suggestions disabled: classify silently.
+            this.addTask(text, category, dueDate, repeat);
+            this.toast(`"${CATEGORY_LABELS[category]}" 카테고리로 자동 분류했습니다`);
+            reset();
+            return;
+        }
+
+        reset();
+        this.openModal({
+            title: "카테고리 추천",
+            bodyHtml: `
+                <p>텍스트 분석 결과 <strong>"${CATEGORY_LABELS[category]}"</strong> 카테고리로 분류하는 것을 추천합니다.</p>
+                <p class="modal-muted">신뢰도: ${Math.round(confidence * 100)}% · 선택한 카테고리: ${CATEGORY_LABELS[selected]}</p>
+                <p>추천 카테고리로 설정하시겠습니까?</p>
+            `,
+            actions: [
+                { label: "확인", primary: true, onClick: () => this.addTask(text, category, dueDate, repeat) },
+                { label: "취소", onClick: () => this.addTask(text, selected, dueDate, repeat) },
+            ],
+            onDismiss: () => this.addTask(text, selected, dueDate, repeat),
+        });
+    }
+
+    // ---------- Auto categorization ----------
+
+    // Returns a suggestion only when it differs from `current` and passes
+    // the confidence threshold; otherwise null.
+    getSuggestion(text, current) {
+        const cfg = this.settings.autoCategory;
+        if (!cfg.enabled) return null;
+        const result = classifyText(text);
+        if (!result || result.category === current) return null;
+        if (result.confidence < cfg.threshold) return null;
+        return result;
+    }
+
+    reclassifyAll() {
+        const cfg = this.settings.autoCategory;
+        if (!cfg.enabled) {
+            this.toast("자동 분류가 꺼져 있습니다. 분류 설정에서 켜 주세요");
+            return;
+        }
+        const changes = [];
+        for (const task of this.tasks) {
+            const s = this.getSuggestion(task.text, task.category);
+            if (s) changes.push({ task, category: s.category });
+        }
+        if (changes.length === 0) {
+            this.toast("재분류할 항목이 없습니다");
+            return;
+        }
+        const list = changes.slice(0, 8).map((c) =>
+            `<li>${escapeHtml(c.task.text)} : ${CATEGORY_LABELS[c.task.category]} → ${CATEGORY_LABELS[c.category]}</li>`
+        ).join("");
+        const more = changes.length > 8 ? `<li>...외 ${changes.length - 8}개</li>` : "";
+        this.openModal({
+            title: "자동 재분류",
+            bodyHtml: `<p>${changes.length}개 항목의 카테고리를 변경합니다.</p><ul class="modal-list">${list}${more}</ul>`,
+            actions: [
+                {
+                    label: "변경",
+                    primary: true,
+                    onClick: () => {
+                        for (const c of changes) c.task.category = c.category;
+                        this.save();
+                        this.render();
+                        this.toast(`${changes.length}개 항목을 재분류했습니다`);
+                    },
+                },
+                { label: "취소" },
+            ],
+        });
+    }
+
+    openSettings() {
+        const cfg = this.settings.autoCategory;
+        const keywordRows = Object.entries(CATEGORY_KEYWORDS).map(([cat, kws]) => `
+            <div class="keyword-row">
+                <span class="category-badge ${cat}">${CATEGORY_LABELS[cat]}</span>
+                <span class="keyword-list">${kws.slice(0, 8).join(", ")} 등</span>
+            </div>
+        `).join("");
+
+        const modal = this.openModal({
+            title: "자동 분류 설정",
+            bodyHtml: `
+                <label class="setting-row">
+                    <input type="checkbox" id="setEnabled" ${cfg.enabled ? "checked" : ""}>
+                    <span><strong>자동 분류 기능 활성화</strong><br>
+                    <small>새 할 일 추가 시 키워드를 분석해 카테고리를 제안합니다.</small></span>
+                </label>
+                <label class="setting-row">
+                    <input type="checkbox" id="setSuggest" ${cfg.showSuggestions ? "checked" : ""}>
+                    <span><strong>분류 제안 표시</strong><br>
+                    <small>끄면 확인 없이 자동으로 분류합니다.</small></span>
+                </label>
+                <div class="setting-row column">
+                    <strong>신뢰도 임계값: <span id="setThresholdLabel">${Math.round(cfg.threshold * 100)}%</span></strong>
+                    <input type="range" id="setThreshold" min="30" max="100" step="5" value="${Math.round(cfg.threshold * 100)}">
+                    <small>이 값 이상의 신뢰도를 가진 제안만 표시됩니다. 높을수록 더 확실한 제안만 표시됩니다.</small>
+                </div>
+                <div class="setting-row column">
+                    <strong>키워드 미리보기</strong>
+                    ${keywordRows}
+                </div>
+            `,
+            actions: [
+                {
+                    label: "저장",
+                    primary: true,
+                    onClick: () => {
+                        this.settings.autoCategory = {
+                            enabled: modal.querySelector("#setEnabled").checked,
+                            showSuggestions: modal.querySelector("#setSuggest").checked,
+                            threshold: Number(modal.querySelector("#setThreshold").value) / 100,
+                        };
+                        this.save();
+                        this.toast("분류 설정을 저장했습니다");
+                    },
+                },
+                { label: "닫기" },
+            ],
+        });
+        const slider = modal.querySelector("#setThreshold");
+        slider.addEventListener("input", () => {
+            modal.querySelector("#setThresholdLabel").textContent = `${slider.value}%`;
+        });
+    }
+
+    // Minimal modal helper. Each action closes the dialog after its handler;
+    // closing any other way (Esc / backdrop) runs `onDismiss` if given.
+    openModal({ title, bodyHtml, actions, onDismiss }) {
+        const backdrop = document.createElement("div");
+        backdrop.className = "modal-backdrop";
+        backdrop.innerHTML = `
+            <div class="modal" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
+                <div class="modal-header"><h2>${escapeHtml(title)}</h2></div>
+                <div class="modal-body">${bodyHtml}</div>
+                <div class="modal-actions"></div>
+            </div>
+        `;
+        const modal = backdrop.querySelector(".modal");
+        let closed = false;
+        const close = (runDismiss) => {
+            if (closed) return;
+            closed = true;
+            document.removeEventListener("keydown", onKey, true);
+            backdrop.remove();
+            if (runDismiss && onDismiss) onDismiss();
+        };
+        const onKey = (e) => {
+            if (e.key === "Escape") {
+                e.stopPropagation();
+                close(true);
+            }
+        };
+        document.addEventListener("keydown", onKey, true);
+        backdrop.addEventListener("mousedown", (e) => {
+            if (e.target === backdrop) close(true);
+        });
+
+        const actionsEl = backdrop.querySelector(".modal-actions");
+        for (const action of actions) {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.textContent = action.label;
+            if (action.primary) btn.className = "primary";
+            btn.addEventListener("click", () => {
+                close(false);
+                if (action.onClick) action.onClick();
+            });
+            actionsEl.appendChild(btn);
+        }
+
+        document.body.appendChild(backdrop);
+        (actionsEl.querySelector(".primary") || actionsEl.firstChild).focus();
+        return modal;
     }
 }
 

@@ -47,3 +47,17 @@ backend — opening `index.html` in a browser is enough. Data persists via
   set up once in `bindEvents()`.
 - Import always backs up the previous `localStorage` snapshot under a
   timestamped key (`my-tasks-data-backup-<timestamp>`) before overwriting.
+
+## Auto Categorization
+
+- `CATEGORY_KEYWORDS` + `classifyText(text)` return
+  `{ category, confidence, matches }` or `null`; confidence is the winning
+  category's share of the total keyword score. Single-character keywords are
+  weighted 0.5 and only match at the start of a word.
+- `settings.autoCategory = { enabled, showSuggestions, threshold }`
+  (defaults in `DEFAULT_AUTO_CATEGORY`, threshold 0.6), saved with the other
+  settings and merged with defaults on load so older saved data still works.
+- `handleAdd()` → `getSuggestion()` → `openModal()` shows the suggestion
+  dialog; the task is added exactly once however the dialog is closed.
+- `reclassifyAll()` and `openSettings()` back the [자동 재분류] / [분류 설정]
+  buttons in the import/export row.
