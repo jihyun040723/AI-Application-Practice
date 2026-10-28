@@ -1,0 +1,348 @@
+/*
+ * Quiz data: 4 categories x 10 questions = 40 questions.
+ *
+ * Fields:
+ *   id          unique number
+ *   category    one of QUIZ_CATEGORIES
+ *   difficulty  "easy" | "medium" | "hard"
+ *   question    text shown to the player (criteria are stated in the text
+ *               whenever the answer depends on a measurement or a point in time)
+ *   options     exactly 4 choices
+ *   answer      index (0-3) of the correct option in `options`
+ *   explanation shown after answering
+ *   hint        optional clue (used by the hint button)
+ *
+ * All questions follow the cross-verification guidelines in CLAUDE.md.
+ */
+
+const QUIZ_CATEGORIES = ["한국사", "세계지리", "과학", "예술과 문화"];
+
+const QUIZ_DATA = [
+    // ===== 한국사 =====
+    {
+        id: 1, category: "한국사", difficulty: "easy",
+        question: "훈민정음을 창제한 조선의 왕은?",
+        options: ["태종", "세종", "세조", "정조"],
+        answer: 1,
+        explanation: "세종대왕은 1443년 훈민정음을 창제하고 1446년에 반포했습니다.",
+        hint: "집현전 학자들과 함께 한글을 만든 왕입니다.",
+    },
+    {
+        id: 2, category: "한국사", difficulty: "easy",
+        question: "일본이 조선을 침략한 임진왜란이 시작된 해는?",
+        options: ["1392년", "1492년", "1592년", "1692년"],
+        answer: 2,
+        explanation: "임진왜란은 선조 25년인 1592년에 일어났습니다.",
+        hint: "임진년, 이순신 장군이 활약한 전쟁입니다.",
+    },
+    {
+        id: 3, category: "한국사", difficulty: "easy",
+        question: "건국 신화에 따라 고구려를 세웠다고 전해지는 인물은?",
+        options: ["박혁거세", "온조", "김수로", "주몽"],
+        answer: 3,
+        explanation: "고구려의 건국 시조는 주몽(동명성왕)입니다. 박혁거세는 신라, 온조는 백제, 김수로는 금관가야의 시조로 전해집니다.",
+        hint: "동명성왕이라고도 불립니다.",
+    },
+    {
+        id: 4, category: "한국사", difficulty: "easy",
+        question: "일제강점기에 전국적으로 만세 운동이 일어난 3·1 운동은 몇 년에 일어났을까요?",
+        options: ["1919년", "1905년", "1910년", "1945년"],
+        answer: 0,
+        explanation: "3·1 운동은 1919년 3월 1일에 시작되었습니다. 1910년은 국권 피탈, 1945년은 광복의 해입니다.",
+        hint: "1910년대가 끝나갈 무렵입니다.",
+    },
+    {
+        id: 5, category: "한국사", difficulty: "medium",
+        question: "조선의 정궁(법궁)으로 1395년에 처음 지어진 궁궐은?",
+        options: ["창덕궁", "경복궁", "덕수궁", "경희궁"],
+        answer: 1,
+        explanation: "경복궁은 태조 이성계가 1395년에 완성한 조선의 정궁입니다. 임진왜란 때 불탄 뒤 고종 때 흥선대원군이 다시 지었습니다.",
+        hint: "광화문이 정문인 궁궐입니다.",
+    },
+    {
+        id: 6, category: "한국사", difficulty: "medium",
+        question: "청나라가 조선을 침략하여 인조가 삼전도에서 항복한 병자호란이 일어난 해는?",
+        options: ["1592년", "1627년", "1636년", "1650년"],
+        answer: 2,
+        explanation: "병자호란은 1636년에 일어났고 이듬해인 1637년에 인조가 항복했습니다. 1627년은 정묘호란입니다.",
+        hint: "병자년에 일어나서 이런 이름이 붙었습니다.",
+    },
+    {
+        id: 7, category: "한국사", difficulty: "medium",
+        question: "고구려가 멸망한 뒤 698년에 발해를 세운 인물은?",
+        options: ["대조영", "궁예", "왕건", "견훤"],
+        answer: 0,
+        explanation: "대조영이 698년 동모산에서 진국(후에 발해)을 세웠습니다. 궁예는 후고구려, 견훤은 후백제, 왕건은 고려를 세웠습니다.",
+        hint: "고구려 유민 출신입니다.",
+    },
+    {
+        id: 8, category: "한국사", difficulty: "medium",
+        question: "고려 시대 거란의 1차 침입(993년) 때 서희가 소손녕과 담판을 지어 얻어낸 땅은?",
+        options: ["4군 6진", "대마도", "요동", "강동 6주"],
+        answer: 3,
+        explanation: "서희는 외교 담판으로 거란의 철수를 이끌고 압록강 동쪽의 강동 6주 지역을 확보했습니다. 4군 6진은 조선 세종 때 개척한 지역입니다.",
+        hint: "압록강 동쪽 지역의 여섯 개 주입니다.",
+    },
+    {
+        id: 9, category: "한국사", difficulty: "hard",
+        question: "조선의 기본 법전인 『경국대전』을 1485년에 최종 완성하여 반포한 왕은?",
+        options: ["세조", "성종", "중종", "영조"],
+        answer: 1,
+        explanation: "경국대전은 세조 때 편찬을 시작해 성종 때인 1485년에 최종 완성·반포되었습니다.",
+        hint: "세조의 손자이며, 편찬을 마무리한 왕입니다.",
+    },
+    {
+        id: 10, category: "한국사", difficulty: "hard",
+        question: "신라와 당나라 연합군에 의해 백제가 멸망한 해는?",
+        options: ["612년", "645년", "660년", "668년"],
+        answer: 2,
+        explanation: "백제는 660년에 멸망했고, 고구려는 668년에 멸망했습니다. 마지막 왕은 의자왕입니다.",
+        hint: "7세기 중반이며, 계백 장군의 황산벌 전투가 있었던 해입니다.",
+    },
+
+    // ===== 세계지리 =====
+    {
+        id: 11, category: "세계지리", difficulty: "easy",
+        question: "면적을 기준으로 가장 큰 대륙은?",
+        options: ["아프리카", "아시아", "북아메리카", "유럽"],
+        answer: 1,
+        explanation: "아시아는 면적 약 4,400만 km²로 모든 대륙 중 가장 넓습니다.",
+        hint: "한국이 속한 대륙입니다.",
+    },
+    {
+        id: 12, category: "세계지리", difficulty: "easy",
+        question: "세계에서 가장 긴 강은? (전통적 측정 기준)",
+        options: ["아마존강", "나일강", "양쯔강", "미시시피강"],
+        answer: 1,
+        explanation: "나일강은 약 6,650km로 전통적으로 세계에서 가장 긴 강으로 인정됩니다. (최근 연구에서는 아마존강이 더 길다는 주장도 있습니다.)",
+        hint: "아프리카 북동부를 흐르며 고대 이집트 문명을 키운 강입니다.",
+    },
+    {
+        id: 13, category: "세계지리", difficulty: "easy",
+        question: "프랑스의 수도는?",
+        options: ["파리", "런던", "마드리드", "로마"],
+        answer: 0,
+        explanation: "프랑스의 수도는 파리이며, 센강이 도시를 가로지릅니다.",
+        hint: "에펠탑이 있는 도시입니다.",
+    },
+    {
+        id: 14, category: "세계지리", difficulty: "easy",
+        question: "면적이 가장 넓은 대양(큰 바다)은?",
+        options: ["대서양", "인도양", "북극해", "태평양"],
+        answer: 3,
+        explanation: "태평양은 지구 표면의 약 3분의 1을 차지하는 가장 큰 대양입니다.",
+        hint: "한국과 일본, 미국 서부 해안 사이에 펼쳐진 바다입니다.",
+    },
+    {
+        id: 15, category: "세계지리", difficulty: "medium",
+        question: "오스트레일리아(호주)의 수도는?",
+        options: ["시드니", "캔버라", "멜버른", "브리즈번"],
+        answer: 1,
+        explanation: "수도는 캔버라입니다. 시드니와 멜버른이 수도 자리를 두고 경쟁하여, 두 도시 사이에 계획도시 캔버라를 세웠습니다.",
+        hint: "가장 큰 도시인 시드니는 수도가 아닙니다.",
+    },
+    {
+        id: 16, category: "세계지리", difficulty: "medium",
+        question: "안데스 산맥이 서쪽 해안을 따라 길게 뻗어 있는 대륙은?",
+        options: ["아프리카", "북아메리카", "남아메리카", "유럽"],
+        answer: 2,
+        explanation: "안데스 산맥은 남아메리카 서쪽을 따라 약 7,000km 길이로 이어진 세계에서 가장 긴 대륙 산맥(대륙 위 산맥 기준)입니다.",
+        hint: "페루, 칠레, 아르헨티나가 있는 대륙입니다.",
+    },
+    {
+        id: 17, category: "세계지리", difficulty: "medium",
+        question: "'희망봉(Cape of Good Hope)'이 위치한 나라는?",
+        options: ["모로코", "케냐", "이집트", "남아프리카 공화국"],
+        answer: 3,
+        explanation: "희망봉은 남아프리카 공화국 서남쪽 케이프반도에 있습니다. 1488년 포르투갈의 바르톨로메우 디아스가 처음 도달했습니다.",
+        hint: "아프리카 대륙 남쪽 끝에 있는 나라입니다.",
+    },
+    {
+        id: 18, category: "세계지리", difficulty: "medium",
+        question: "튀르키예(터키)의 이스탄불을 아시아 쪽과 유럽 쪽으로 가르는 해협은?",
+        options: ["보스포루스 해협", "도버 해협", "말라카 해협", "지브롤터 해협"],
+        answer: 0,
+        explanation: "보스포루스 해협은 흑해와 마르마라해를 잇는 해협으로, 이스탄불을 아시아와 유럽으로 나눕니다.",
+        hint: "도시가 두 대륙에 걸쳐 있습니다.",
+    },
+    {
+        id: 19, category: "세계지리", difficulty: "hard",
+        question: "총면적(육지와 내수면 포함)을 기준으로 세계에서 가장 큰 나라는?",
+        options: ["캐나다", "미국", "러시아", "중국"],
+        answer: 2,
+        explanation: "러시아의 면적은 약 1,710만 km²로 세계 1위이며, 2위는 캐나다입니다.",
+        hint: "유럽과 아시아에 걸쳐 있으며 11개의 시간대를 가집니다.",
+    },
+    {
+        id: 20, category: "세계지리", difficulty: "hard",
+        question: "세계에서 가장 높은 산인 에베레스트산(해발고도 기준)은 어느 두 나라의 국경에 걸쳐 있을까요?",
+        options: ["인도와 파키스탄", "부탄과 인도", "네팔과 인도", "네팔과 중국"],
+        answer: 3,
+        explanation: "에베레스트산은 히말라야 산맥에 있으며 네팔과 중국(티베트 자치구)의 국경에 위치합니다.",
+        hint: "산 이름 티베트어는 '초모랑마'입니다.",
+    },
+
+    // ===== 과학 =====
+    {
+        id: 21, category: "과학", difficulty: "easy",
+        question: "물의 화학식은?",
+        options: ["CO₂", "O₂", "NaCl", "H₂O"],
+        answer: 3,
+        explanation: "물 분자는 수소 원자 2개와 산소 원자 1개로 이루어져 H₂O로 나타냅니다.",
+        hint: "수소 2개, 산소 1개입니다.",
+    },
+    {
+        id: 22, category: "과학", difficulty: "easy",
+        question: "태양계에서 태양과 가장 가까운 행성은?",
+        options: ["수성", "금성", "화성", "지구"],
+        answer: 0,
+        explanation: "수성은 태양에서 평균 약 5,800만 km 떨어진, 태양에 가장 가까운 행성입니다.",
+        hint: "'수금지화목토천해' 순서의 첫 번째입니다.",
+    },
+    {
+        id: 23, category: "과학", difficulty: "easy",
+        question: "식물이 광합성에 쓰려고 공기 중에서 흡수하는 기체는?",
+        options: ["산소", "이산화탄소", "질소", "수소"],
+        answer: 1,
+        explanation: "식물은 빛에너지를 이용해 이산화탄소와 물로 포도당을 만들고, 부산물로 산소를 내놓습니다.",
+        hint: "사람이 숨을 내쉴 때 나오는 기체입니다.",
+    },
+    {
+        id: 24, category: "과학", difficulty: "easy",
+        question: "소리(음파)가 전달되지 않는 곳은?",
+        options: ["물속", "공기 중", "진공", "쇠막대 속"],
+        answer: 2,
+        explanation: "소리는 공기, 물, 고체 같은 매질의 진동으로 전달되므로 매질이 없는 진공에서는 전달되지 않습니다.",
+        hint: "우주 공간처럼 아무것도 없는 곳입니다.",
+    },
+    {
+        id: 25, category: "과학", difficulty: "medium",
+        question: "사람 몸속의 내부 장기 중 가장 큰 것은?",
+        options: ["폐", "위", "간", "심장"],
+        answer: 2,
+        explanation: "간은 성인 기준 무게가 약 1.2~1.5kg인 가장 큰 내부 장기입니다. (몸 전체에서 가장 큰 기관은 피부입니다.)",
+        hint: "해독 작용을 하며 오른쪽 윗배에 있습니다.",
+    },
+    {
+        id: 26, category: "과학", difficulty: "medium",
+        question: "지구 대기에서 부피 비율이 가장 큰 기체는?",
+        options: ["산소", "질소", "아르곤", "이산화탄소"],
+        answer: 1,
+        explanation: "질소가 약 78%, 산소가 약 21%를 차지합니다.",
+        hint: "산소보다 3배 이상 많습니다.",
+    },
+    {
+        id: 27, category: "과학", difficulty: "medium",
+        question: "빛의 삼원색이 아닌 것은?",
+        options: ["빨강", "초록", "파랑", "노랑"],
+        answer: 3,
+        explanation: "빛의 삼원색은 빨강·초록·파랑입니다. 노랑은 빨강과 초록 빛이 섞여서 만들어지는 색입니다.",
+        hint: "빨강과 초록 빛을 섞으면 만들어지는 색입니다.",
+    },
+    {
+        id: 28, category: "과학", difficulty: "medium",
+        question: "원소 기호 'Fe'가 나타내는 원소는?",
+        options: ["금", "은", "철", "구리"],
+        answer: 2,
+        explanation: "Fe는 라틴어 ferrum에서 온 철의 원소 기호입니다. 금은 Au, 은은 Ag, 구리는 Cu입니다.",
+        hint: "자석에 붙는 금속입니다.",
+    },
+    {
+        id: 29, category: "과학", difficulty: "hard",
+        question: "1869년에 주기율표를 발표한 러시아의 화학자는?",
+        options: ["멘델레예프", "보어", "라부아지에", "돌턴"],
+        answer: 0,
+        explanation: "드미트리 멘델레예프는 원소를 원자량 순으로 배열하고 성질이 비슷한 원소가 주기적으로 나타나도록 정리했으며, 아직 발견되지 않은 원소의 존재도 예측했습니다.",
+        hint: "이름이 'ㅁ'으로 시작하는 러시아 화학자입니다.",
+    },
+    {
+        id: 30, category: "과학", difficulty: "hard",
+        question: "1953년에 DNA의 이중 나선 구조를 발표한 두 과학자는?",
+        options: ["멘델과 다윈", "왓슨과 크릭", "파스퇴르와 코흐", "보어와 하이젠베르크"],
+        answer: 1,
+        explanation: "제임스 왓슨과 프랜시스 크릭이 1953년 논문으로 발표했으며, 로절린드 프랭클린의 X선 회절 사진이 중요한 단서가 되었습니다.",
+        hint: "1962년 노벨 생리의학상을 함께 받았습니다.",
+    },
+
+    // ===== 예술과 문화 =====
+    {
+        id: 31, category: "예술과 문화", difficulty: "easy",
+        question: "레오나르도 다 빈치가 그린 초상화는?",
+        options: ["별이 빛나는 밤", "절규", "진주 귀걸이를 한 소녀", "모나리자"],
+        answer: 3,
+        explanation: "모나리자는 레오나르도 다 빈치가 16세기 초에 그린 초상화로 현재 프랑스 루브르 박물관에 있습니다.",
+        hint: "신비로운 미소로 유명한 그림입니다.",
+    },
+    {
+        id: 32, category: "예술과 문화", difficulty: "easy",
+        question: "베토벤의 교향곡 중 흔히 '운명'이라는 별칭으로 불리는 곡은 몇 번일까요?",
+        options: ["3번", "5번", "7번", "9번"],
+        answer: 1,
+        explanation: "교향곡 5번 c단조는 첫머리의 '따따따 딴' 선율 때문에 '운명'이라는 별칭으로 불립니다. 9번은 '합창'으로 불립니다.",
+        hint: "'따따따 딴~'으로 시작하는 곡입니다.",
+    },
+    {
+        id: 33, category: "예술과 문화", difficulty: "easy",
+        question: "'별이 빛나는 밤'을 그린 화가는?",
+        options: ["빈센트 반 고흐", "클로드 모네", "폴 세잔", "에드바르 뭉크"],
+        answer: 0,
+        explanation: "빈센트 반 고흐가 1889년 프랑스 생레미의 요양원에서 그린 작품입니다.",
+        hint: "네덜란드 출신 후기 인상파 화가입니다.",
+    },
+    {
+        id: 34, category: "예술과 문화", difficulty: "easy",
+        question: "셰익스피어의 4대 비극에 포함되지 않는 작품은?",
+        options: ["햄릿", "오셀로", "로미오와 줄리엣", "리어 왕"],
+        answer: 2,
+        explanation: "4대 비극은 『햄릿』『오셀로』『리어 왕』『맥베스』입니다. 『로미오와 줄리엣』도 비극이지만 보통 4대 비극에는 넣지 않습니다.",
+        hint: "4대 비극에는 『맥베스』가 포함됩니다.",
+    },
+    {
+        id: 35, category: "예술과 문화", difficulty: "medium",
+        question: "스페인 내전 중이던 1937년, 폭격당한 마을을 그린 대작 '게르니카'의 화가는?",
+        options: ["파블로 피카소", "살바도르 달리", "앙리 마티스", "호안 미로"],
+        answer: 0,
+        explanation: "게르니카는 파블로 피카소가 스페인 북부 도시 게르니카의 폭격을 소재로 그린 작품입니다.",
+        hint: "입체주의(큐비즘)를 이끈 스페인 화가입니다.",
+    },
+    {
+        id: 36, category: "예술과 문화", difficulty: "medium",
+        question: "'하회탈'과 하회별신굿탈놀이로 유명한 전통 마을은?",
+        options: ["경주 양동마을", "안동 하회마을", "전주 한옥마을", "제주 성읍마을"],
+        answer: 1,
+        explanation: "경북 안동의 하회마을은 하회탈과 별신굿탈놀이가 전해지는 곳으로, 2010년 경주 양동마을과 함께 유네스코 세계유산에 등재되었습니다.",
+        hint: "낙동강이 마을을 감싸 흐르는 경상북도의 마을입니다.",
+    },
+    {
+        id: 37, category: "예술과 문화", difficulty: "medium",
+        question: "오페라 '마술피리'를 작곡한 음악가는?",
+        options: ["베르디", "푸치니", "모차르트", "바그너"],
+        answer: 2,
+        explanation: "마술피리는 모차르트가 세상을 떠난 해인 1791년에 초연된 오페라입니다.",
+        hint: "오스트리아 잘츠부르크 출신의 천재 작곡가입니다.",
+    },
+    {
+        id: 38, category: "예술과 문화", difficulty: "medium",
+        question: "조선 후기 화가 신윤복이 그린 풍속화는?",
+        options: ["씨름", "서당", "타작", "단오풍정"],
+        answer: 3,
+        explanation: "단오풍정은 신윤복의 『혜원전신첩』에 실린 풍속화입니다. 씨름, 서당, 타작은 김홍도의 풍속화첩에 실린 그림입니다.",
+        hint: "단오날 여인들이 창포물에 머리를 감는 장면을 담았습니다.",
+    },
+    {
+        id: 39, category: "예술과 문화", difficulty: "hard",
+        question: "1989년 완공된 프랑스 루브르 박물관의 유리 피라미드를 설계한 건축가는?",
+        options: ["안도 다다오", "이오 밍 페이", "프랭크 게리", "르 코르뷔지에"],
+        answer: 1,
+        explanation: "중국계 미국인 건축가 이오 밍 페이(I. M. Pei)가 설계했으며, 루브르의 새 중앙 입구로 쓰입니다.",
+        hint: "이름이 'I. M.'으로 시작하는 중국계 미국인 건축가입니다.",
+    },
+    {
+        id: 40, category: "예술과 문화", difficulty: "hard",
+        question: "발레 '백조의 호수'를 작곡한 러시아의 작곡가는?",
+        options: ["스트라빈스키", "프로코피예프", "차이콥스키", "쇼팽"],
+        answer: 2,
+        explanation: "차이콥스키는 『백조의 호수』『잠자는 숲속의 미녀』『호두까기 인형』 3대 발레 음악을 작곡했습니다.",
+        hint: "『호두까기 인형』도 작곡한 사람입니다.",
+    },
+];
