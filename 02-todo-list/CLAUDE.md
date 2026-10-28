@@ -39,6 +39,8 @@ backend — opening `index.html` in a browser is enough. Data persists via
 
 - All code and comments in English; UI-facing text in Korean.
 - Keep everything in the three files listed above — no build tooling.
+- `web_version/` holds a desktop (sidebar) layout of the same app with its own
+  copy of the three files; it shares the `my-tasks-data` storage key.
 
 ## Development Notes
 
